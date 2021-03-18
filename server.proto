@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+service Ready {
+	rpc Submit (User) returns (Friends) {}
+}
+
+message User {
+    string name = 1;
+}
+
+message Friends {
+    repeated string names = 1;
+}
