@@ -1,7 +1,6 @@
 import atexit
 import concurrent
 import concurrent.futures as futures
-import duolingo
 import grpc
 import json
 import logging
@@ -9,6 +8,10 @@ import os
 import typing
 from typing import Dict
 from typing import List
+
+
+import lib
+import lib.duolingo as duolingo
 
 import server_pb2
 import server_pb2_grpc
@@ -38,11 +41,14 @@ def init_env() -> None:
     logging.info('Found PASS at %s', duolingo_password)
 
 
-def init_loggin(j) -> None:
+def init_log() -> None:
     global lingo
-    username = duolingo_uesrname
-    password = duolingo_password
-    lingo = duolingo.Duolingo(username=username, password=password)
+    usr = duolingo_username
+    pss = duolingo_password
+
+    lingo = duolingo.Duolingo(username=usr, password=pss)
+    logging.info('Success logged in with user "%s" and pass "%s"', usr, pss)
+    logging.info(lingo)
 
 
 def init_atexit() -> None:
@@ -76,6 +82,7 @@ def init_server() -> None:
 class Server(server_pb2_grpc.ReadyServicer):
     @staticmethod
     def get_http_request(name: str) -> List[str]:
+        lingo.set_username(name)
         friends_resp = lingo.get_friends()
         friends: List[str] = []
 
@@ -87,16 +94,20 @@ class Server(server_pb2_grpc.ReadyServicer):
 
     def Submit(self, request, context):
         name: str = request.name
-        logging.info('Registering service %s', service)
+        logging.info('Received username %s', name)
 
-        return server_pb2.ReadyStatus(ready=False)
+        friends: List[str] = Server.get_http_request(name)
+        logging.info('Found friends for "%s":', name)
+        logging.info(friends)
+
+        return server_pb2.Friends(names=friends)
 
 
 def init() -> None:
     init_logging()
     init_atexit()
     init_env()
-    init_logging()
+    init_log()
     init_server()
 
 
